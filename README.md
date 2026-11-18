@@ -86,6 +86,19 @@ A>HELLO
 Hello from CP/M 2.2 on the NEC V30!
 ```
 
+* Drive B: (on cards bigger than 8 MB) has DR's **PL/I-80 1.4** compiler with
+  its run-time library and DR's sample programs. The CP/M 2.2 CCP only looks
+  for programs on the current drive, hence `A:LINK`:
+
+```
+B>PLI DEMO
+B>A:LINK DEMO
+B>DEMO
+```
+
+Files in `cpmfiles/` go onto A:, and files in `cpmfiles/B/`, `cpmfiles/C/` and
+so on go onto those drives (skipped if the card is too small for them).
+
 ### Other software (`extras/`)
 
 `build.py` also copies a local `extras/` folder onto A:. Git ignores this

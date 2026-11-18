@@ -11,6 +11,9 @@ RMAC, LINK, LIB and XREF, taken from the same site and from the CP/M 2.2
 disk of the RomWBW project (https://github.com/wwarthen/RomWBW), whose
 SUBMIT.COM includes DR's official patch.
 
+cpmfiles/B/* is Digital Research's PL/I-80 1.4 (compiler, PLILIB.IRL, Z80.LIB
+and the sample programs), from pli80_14.zip on the same site.
+
 CP/M is copyright Digital Research. It is distributed under the following grant
 from the owner of the Digital Research assets (posted at
 http://www.cpm.z80.de/license.html, 7 July 2022):
