@@ -19,6 +19,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cpmfs  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'src')
 BUILD = os.path.join(ROOT, 'build')
@@ -33,8 +36,6 @@ HOST_PER_TRACK = SPT * 128 // 512
 MAX_DRIVE = 16384       # sectors (8 MB, the CP/M 2.2 limit)
 MIN_DRIVE = 1024        # sectors (512 KB) - keeps DSM > 255
 BIOS_LIMIT = 0xFE00     # ESEG:FE00-FFFF is the native stack
-TEXT_EXT = {'.ASM', '.TXT', '.SUB', '.DOC', '.LIB', '.MAC', '.BAS', '.PAS',
-            '.C', '.H', '.PRN', '.ME'}
 
 
 def plan_drives(total, maxdrives):
@@ -112,59 +113,20 @@ def read_sym(path):
     return syms
 
 
-def cpm_name(fn):
-    base, _, ext = os.path.basename(fn).upper().partition('.')
-    if not base or len(base) > 8 or len(ext) > 3:
-        return None
-    return base.ljust(8).encode('ascii'), ext.ljust(3).encode('ascii')
-
-
 def write_files(img, d, files):
-    """Write files into CP/M drive d (dict from plan_drives) inside img."""
-    base = d['base'] * 512
-    bls = d['bls']
-    dirsize = (d['drm'] + 1) * 32
-    ndirblocks = dirsize // bls
-    entries = []
-    nextblock = ndirblocks
-    recs_per_entry = 8 * bls // 128          # 16-bit block pointers: 8 per entry
+    """Write host files onto CP/M drive d (dict from plan_drives) inside img."""
+    region = bytearray(img[d['base'] * 512:(d['base'] + d['sectors']) * 512])
+    drv = cpmfs.CpmDrive(region, d)
     for path in files:
-        nm = cpm_name(path)
-        if nm is None:
-            print('  skipping %s (not an 8.3 name)' % path)
-            continue
         data = open(path, 'rb').read()
-        if os.path.splitext(path)[1].upper() in TEXT_EXT:
-            data = data.split(b'\x1a')[0].replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
-            data += b'\x1a'                  # CP/M text: CR LF lines, ^Z at end
-        if len(data) % 128:
-            data += b'\x1a' * (128 - len(data) % 128)
-        nrec = len(data) // 128
-        nblocks = (len(data) + bls - 1) // bls
-        if nextblock + nblocks > d['dsm'] + 1:
-            sys.exit('drive full while adding %s' % path)
-        blocks = list(range(nextblock, nextblock + nblocks))
-        for i, b in enumerate(blocks):
-            chunk = data[i * bls:(i + 1) * bls]
-            img[base + b * bls: base + b * bls + len(chunk)] = chunk
-        nextblock += nblocks
-        nent = max(1, (nrec + recs_per_entry - 1) // recs_per_entry)
-        for e in range(nent):
-            n = min(recs_per_entry, nrec - e * recs_per_entry)
-            if n <= 0:
-                ext, rc = e * (d['exm'] + 1), 0
-            else:
-                last = (n - 1) // 128
-                ext, rc = e * (d['exm'] + 1) + last, n - last * 128
-            al = blocks[e * 8:(e + 1) * 8]
-            ent = bytes([0]) + nm[0] + nm[1] + bytes([ext & 0x1F, 0, ext >> 5, rc])
-            ent += b''.join(b.to_bytes(2, 'little') for b in al).ljust(16, b'\0')
-            entries.append(ent)
-    if len(entries) > d['drm'] + 1:
-        sys.exit('too many directory entries')
-    for i, ent in enumerate(entries):
-        img[base + i * 32: base + i * 32 + 32] = ent
-    return len(entries), nextblock
+        if cpmfs.is_text_name(path):
+            data = cpmfs.to_cpm_text(data)
+        try:
+            drv.write(os.path.basename(path), data)
+        except cpmfs.CpmError as e:
+            sys.exit('%s: %s' % (path, e))
+    img[d['base'] * 512:(d['base'] + d['sectors']) * 512] = region
+    return len(drv.files()), (d['dsm'] + 1) - len(drv.free_blocks())
 
 
 def main():
@@ -225,8 +187,7 @@ def main():
         files = sorted(os.path.join(a.files, f) for f in os.listdir(a.files)
                        if os.path.isfile(os.path.join(a.files, f)))
     nent, used = write_files(img, drives[0], files)
-    print('  A: %d files, %d directory entries, %d of %d blocks used' % (
-        len(files), nent, used, drives[0]['dsm'] + 1))
+    print('  A: %d files, %d of %d blocks used' % (nent, used, drives[0]['dsm'] + 1))
 
     with open(a.out, 'wb') as f:
         f.write(img)

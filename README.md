@@ -69,6 +69,30 @@ A>HELLO
 Hello from CP/M 2.2 on the NEC V30!
 ```
 
+## Copying files to and from the card
+
+`tools/cpmfiles.py` reads and writes the CP/M file system directly, on the
+card or on an image, without touching the files already there:
+
+```
+python tools/cpmfiles.py D: dir                   # list drive A: on the card in D:
+python tools/cpmfiles.py D: put MBASIC.COM *.BAS  # copy files onto the card
+python tools/cpmfiles.py D: get *.ASM -o backup   # copy files off the card
+python tools/cpmfiles.py D: era OLD.COM           # delete files
+python tools/cpmfiles.py build/cpm.img dir        # same commands on an image file
+```
+
+* `-c B` selects CP/M drive B: (cards bigger than 8 MB have several drives),
+  and `-u 3` selects user area 3. `--force` replaces existing files.
+* Text files (`.ASM .TXT .SUB .HEX .BAS ...`) are converted to CP/M format
+  (CR LF line ends, ^Z at the end) when they go in, and the ^Z is removed when
+  they come out. Use `--binary` to turn this off. Binary files come back padded
+  to a multiple of 128 bytes, because CP/M stores whole records.
+* Card access needs administrator rights; the tool asks with a UAC prompt. It
+  only works on a removable drive whose first sector holds this project's CP/M
+  partition entry. It writes data before the directory, and reads back every
+  sector it writes to verify it.
+
 ## How it works
 
 | LBA   | Contents                                               |
@@ -104,6 +128,8 @@ Hello from CP/M 2.2 on the NEC V30!
   syntax, plus a `CALLN` pseudo-op.
 * `tools/build.py`: plans the drives to fit the card, generates the disk
   tables, assembles everything and writes the image with a CP/M directory.
+* `tools/cpmfiles.py` / `tools/cpmfs.py`: copy files to and from a card or
+  image (see above).
 * `tools/cpmsim.py`: an 8080 simulator that runs the built system and handles
   each `CALLN` in Python. Use it for quick tests without hardware:
   `python tools/cpmsim.py --keys "DIR\rSTAT\r"`.
