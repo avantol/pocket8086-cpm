@@ -272,7 +272,9 @@ syncur:
 .r:     ret
 
 ; first output: find the video buffer and pick up the BIOS cursor
+; (preserves CX: CL holds the character being written)
 con_init:
+        push    cx
         push    es
         xor     ax, ax
         mov     es, ax
@@ -304,6 +306,7 @@ con_init:
         mov     [crow], dh
         mov     [ccol], dl
         mov     byte [cinit], 1
+        pop     cx
         ret
 
 f_conout:
