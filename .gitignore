@@ -11,3 +11,6 @@ tools/*.zip
 # local editor/agent settings
 .claude/settings.local.json
 __pycache__/
+
+# copyrighted / third-party CP/M software kept locally (see README)
+extras/

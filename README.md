@@ -55,12 +55,29 @@ Cancel.**
 
 ## Using it
 
-* Console: the PC screen with a small ADM-3A subset (`^Z` clear,
-  `ESC = row col` cursor positioning, `^^` home, `^K` up, `^L` right). The
-  arrow keys send `^E ^X ^S ^D` (WordStar style) and Del sends DEL.
+* Console: the PC screen acts as an **ADM-3A / Kaypro II** terminal, so in a
+  program's install menu, choose ADM-3A or Kaypro. Output goes straight into
+  video memory, which keeps it fast.
+
+  | Code | Action | Code | Action |
+  |------|--------|------|--------|
+  | `ESC = r c` | cursor to row r-32, column c-32 | `^Z`, `ESC *` | clear screen |
+  | `^X`, `ESC T` | clear to end of line | `^W`, `ESC Y` | clear to end of screen |
+  | `ESC E` | insert line | `ESC R` | delete line |
+  | `ESC B0` / `ESC C0` | reverse video on / off | `ESC B1` / `ESC C1` | bright on / off |
+  | `^K` `^L` `^H` | cursor up / right / left | `^^` | home |
+
+  The arrow keys send `^E ^X ^S ^D` (WordStar style) and Del sends DEL.
 * `LST:` = LPT1, `PUN:`/`RDR:` = COM1.
-* Drive A: comes with DR's ASM, DDT, DUMP, DSKMAINT, ED, LOAD, PIP, STAT,
-  SUBMIT and XSUB, plus `HELLO.ASM`:
+* Drive A: comes with the CP/M 2.2 utilities ASM, DDT, DUMP, ED, LOAD, PIP,
+  STAT, SUBMIT (with DR's patch) and XSUB, plus DR's MAC, RMAC, LINK, LIB and
+  XREF. They come from DR's distribution via
+  [RomWBW](https://github.com/wwarthen/RomWBW). `MOVCPM` and `SYSGEN` are
+  left out on purpose, because this system has no system tracks: SYSGEN would
+  overwrite the directory. Also, **only run 8080 programs written for generic
+  CP/M**. In 8080 mode, `IN`/`OUT` instructions reach the PC's real I/O ports,
+  so machine-specific utilities (disk formatters and the like) can do damage.
+* `HELLO.ASM` is a quick test:
 
 ```
 A>ASM HELLO
@@ -68,6 +85,18 @@ A>LOAD HELLO
 A>HELLO
 Hello from CP/M 2.2 on the NEC V30!
 ```
+
+### Other software (`extras/`)
+
+`build.py` also copies a local `extras/` folder onto A:. Git ignores this
+folder, so it's the place for software you can't redistribute. For example,
+WordStar 3.30 for CP/M-80 (`WS330.zip` from
+[retroarchive.org](http://www.retroarchive.org/cpm/text/wordstar-collection.html))
+works well. Use its Kaypro II build (`WSkayproii.COM`) as `WS.COM`, together
+with `WSOVLY1.OVR`, `WSMSGS.OVR`, and optionally `MAILMRGE.OVR`, `SPELSTAR.*`
+and `WINSTALL.COM`/`WS.INS`. Use only 8080 software: `tools/cpmsim.py` stops
+with an error if a program executes a Z80-only instruction, so test new
+programs with it first.
 
 ## Copying files to and from the card
 
@@ -80,14 +109,20 @@ python tools/cpmfiles.py D: put MBASIC.COM *.BAS  # copy files onto the card
 python tools/cpmfiles.py D: get *.ASM -o backup   # copy files off the card
 python tools/cpmfiles.py D: era OLD.COM           # delete files
 python tools/cpmfiles.py build/cpm.img dir        # same commands on an image file
+python tools/cpmfiles.py D: sys build/cpm.img     # update boot sector + loader only
 ```
+
+`sys` installs a newly built loader (for example, a console update) without
+touching any CP/M files. It refuses to write if the image was built for a
+different card size.
 
 * `-c B` selects CP/M drive B: (cards bigger than 8 MB have several drives),
   and `-u 3` selects user area 3. `--force` replaces existing files.
-* Text files (`.ASM .TXT .SUB .HEX .BAS ...`) are converted to CP/M format
-  (CR LF line ends, ^Z at the end) when they go in, and the ^Z is removed when
-  they come out. Use `--binary` to turn this off. Binary files come back padded
-  to a multiple of 128 bytes, because CP/M stores whole records.
+* Text files (`.ASM .TXT .SUB .HEX .DOC .MAC .LIB ...`) are converted to
+  CP/M format (CR LF line ends, ^Z at the end) when they go in, and the ^Z is
+  removed when they come out. Use `--binary` to turn this off, or `--text` to
+  convert other files too (for example an ASCII `.BAS`). Binary files come
+  back padded to a multiple of 128 bytes, because CP/M stores whole records.
 * Card access needs administrator rights; the tool asks with a UAC prompt. It
   only works on a removable drive whose first sector holds this project's CP/M
   partition entry. It writes data before the directory, and reads back every

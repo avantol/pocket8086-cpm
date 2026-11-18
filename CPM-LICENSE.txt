@@ -5,8 +5,11 @@ src/cpm22.asm is Clark A. Calkins' 1981 reconstruction of the CP/M 2.2 CCP and
 BDOS (from the "Unofficial CP/M Web Site", http://www.cpm.z80.de/), patched to
 match Digital Research's distributed binary and re-origined for this system.
 
-cpmfiles/*.COM (except files built from HELLO.ASM) are the original Digital
-Research CP/M 2.2 utilities from the same site.
+cpmfiles/*.COM are original Digital Research programs: the CP/M 2.2
+utilities (ASM, DDT, DUMP, ED, LOAD, PIP, STAT, SUBMIT, XSUB) and DR's MAC,
+RMAC, LINK, LIB and XREF, taken from the same site and from the CP/M 2.2
+disk of the RomWBW project (https://github.com/wwarthen/RomWBW), whose
+SUBMIT.COM includes DR's official patch.
 
 CP/M is copyright Digital Research. It is distributed under the following grant
 from the owner of the Digital Research assets (posted at

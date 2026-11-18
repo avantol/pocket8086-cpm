@@ -5,6 +5,7 @@
     python tools/cpmfiles.py D: put MBASIC.COM *.BAS   copy files onto the card
     python tools/cpmfiles.py D: get *.ASM -o out       copy files off the card
     python tools/cpmfiles.py D: era OLD.COM            delete files
+    python tools/cpmfiles.py D: sys build/cpm.img      update boot sector + loader only
     python tools/cpmfiles.py build/cpm.img dir         same, on an image file
 
 Options:  -c B      CP/M drive (A-P, default A)
@@ -12,6 +13,7 @@ Options:  -c B      CP/M drive (A-P, default A)
           --force   put: replace files that already exist
           --binary  put/get: no text conversion (default: .ASM .TXT .SUB ...
                     get CR LF line ends and a ^Z, and lose it again on get)
+          --text    put/get: text conversion for any file (e.g. ASCII .BAS)
 
 TARGET is a card image file, or the Windows drive letter of the card (e.g. D:).
 Raw card access needs administrator rights: the tool asks for them itself (one
@@ -28,7 +30,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cpmfs  # noqa: E402
-from build import plan_drives  # noqa: E402
+from build import plan_drives, RESERVED as RESERVED_SECTORS  # noqa: E402
 
 MAX_CARD = 64 * 1024 ** 3
 
@@ -212,7 +214,7 @@ def cmd_put(drv, letter, a):
     user = a.user or 0
     for p in paths:
         data = open(p, 'rb').read()
-        text = cpmfs.is_text_name(p) and not a.binary
+        text = (cpmfs.is_text_name(p) or a.text) and not a.binary
         if text:
             data = cpmfs.to_cpm_text(data)
         try:
@@ -234,7 +236,7 @@ def cmd_get(drv, letter, a):
     for k in keys:
         name = cpmfs.display_name(k[1], k[2])
         data = drv.read(k)
-        if cpmfs.is_text_name(name) and not a.binary:
+        if (cpmfs.is_text_name(name) or a.text) and not a.binary:
             data = cpmfs.from_cpm_text(data)
         dest = os.path.join(a.out, name)
         with open(dest, 'wb') as f:
@@ -254,7 +256,32 @@ def cmd_era(drv, letter, a):
     return True
 
 
-COMMANDS = {'dir': cmd_dir, 'put': cmd_put, 'get': cmd_get, 'era': cmd_era}
+COMMANDS = {'dir': cmd_dir, 'put': cmd_put, 'get': cmd_get, 'era': cmd_era,
+            'sys': None}
+
+
+def cmd_sys(dev, is_card, a):
+    """Replace the boot sector + loader (LBA 0-63) from a built image."""
+    if len(a.names) != 1:
+        raise SystemExit('usage: cpmfiles.py TARGET sys build/cpm.img')
+    new = open(a.names[0], 'rb').read(RESERVED_SECTORS * 512)
+    old = dev.read(0, RESERVED_SECTORS)
+    if new[0x1BE:0x1FE] != old[0x1BE:0x1FE]:
+        raise SystemExit('the image was built for a different card layout '
+                         '(partition tables differ) - nothing written')
+    dirty = [s for s in range(RESERVED_SECTORS)
+             if new[s * 512:(s + 1) * 512] != old[s * 512:(s + 1) * 512]]
+    if not dirty:
+        print('system area already up to date')
+        return
+    if is_card:
+        dev.begin_write()
+    for s in sorted(dirty, reverse=True):          # boot sector last
+        dev.write(s, new[s * 512:(s + 1) * 512])
+    bad = [s for s in dirty if dev.read(s, 1) != new[s * 512:(s + 1) * 512]]
+    if bad:
+        raise SystemExit('VERIFY FAILED on %d sector(s)!' % len(bad))
+    print('system (boot sector + loader): %d sector(s) written and verified' % len(dirty))
 
 
 def main(argv):
@@ -269,6 +296,7 @@ def main(argv):
     ap.add_argument('-o', '--out', default='.')
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--binary', action='store_true')
+    ap.add_argument('--text', action='store_true')
     ap.add_argument('--log', help=argparse.SUPPRESS)
     ap.add_argument('--cwd', help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
@@ -277,10 +305,12 @@ def main(argv):
         sys.stdout = sys.stderr = open(a.log, 'w', encoding='utf-8')
     if a.cwd:
         os.chdir(a.cwd)
-    if a.command in ('put', 'get', 'era') and not a.names:
+    if a.command in ('put', 'get', 'era', 'sys') and not a.names:
         ap.error('%s needs file names' % a.command)
 
-    writes = a.command in ('put', 'era')
+    writes = a.command in ('put', 'era', 'sys')
+    if a.command == 'sys' and a.names:
+        a.names = [os.path.abspath(n) for n in a.names]
     tgt = a.target.rstrip('\\/')
     is_card = len(tgt) == 2 and tgt[1] == ':' and tgt[0].isalpha()
     if is_card:
@@ -294,6 +324,9 @@ def main(argv):
 
     try:
         drives = find_layout(dev)
+        if a.command == 'sys':
+            cmd_sys(dev, is_card, a)
+            return 0
         ci = ord(a.cpm_drive.upper()[0]) - 65
         if not 0 <= ci < len(drives):
             raise SystemExit('the card has CP/M drives A: to %s:' % chr(64 + len(drives)))

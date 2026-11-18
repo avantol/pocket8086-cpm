@@ -9,7 +9,7 @@ $p = Get-Process -Name martypc | Where-Object { $_.MainWindowHandle -ne 0 } | Se
 [W2]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
 Start-Sleep -Milliseconds 500
 foreach ($k in $Keys) {
-    if ($k -match '^\{.*\}$') { [System.Windows.Forms.SendKeys]::SendWait($k); Start-Sleep -Milliseconds $DelayMs; continue }
+    if ($k -match '^\{.*\}$' -or $k -match '^\^[a-z]$') { [System.Windows.Forms.SendKeys]::SendWait($k); Start-Sleep -Milliseconds $DelayMs; continue }
     foreach ($ch in $k.ToCharArray()) {
         $s = [string]$ch
         if ('+^%~(){}[]'.Contains($s)) { $s = '{' + $s + '}' }

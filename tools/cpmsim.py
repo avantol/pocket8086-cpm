@@ -145,9 +145,16 @@ class CPU8080:
             self.fc = self.fac = 0
             self.szp(self.a)
 
+    # opcodes that are undefined on an 8080 but used by the Z80 (CB, DD, ED,
+    # FD prefixes, DJNZ/JR/EX AF/EXX).  The V30's 8080 mode does not run them.
+    Z80_ONLY = {0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0xCB, 0xD9, 0xDD, 0xED, 0xFD}
+
     def step(self):
         op = self.imm8()
         self.steps += 1
+        if op in self.Z80_ONLY and not (op == 0xED and self.m[self.pc] == 0xED):
+            raise Halt('Z80-only opcode %02X at %04X - not 8080 code' %
+                       (op, (self.pc - 1) & 0xFFFF))
         if 0x40 <= op < 0x80:
             if op == 0x76:
                 raise Halt('HLT at %04X' % ((self.pc - 1) & 0xFFFF))

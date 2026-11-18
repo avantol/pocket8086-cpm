@@ -133,8 +133,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--sectors', type=int, required=True,
                     help='card size in 512-byte sectors')
-    ap.add_argument('--files', default=os.path.join(ROOT, 'cpmfiles'),
-                    help='folder whose files go onto drive A:')
+    ap.add_argument('--files', action='append',
+                    help='folder whose files go onto drive A: (repeatable; '
+                         'default: cpmfiles and, if present, extras)')
     ap.add_argument('--drives', type=int, default=4, help='max CP/M drives (1-16)')
     ap.add_argument('--out', default=os.path.join(BUILD, 'cpm.img'))
     a = ap.parse_args()
@@ -182,10 +183,14 @@ def main():
     img[0:512] = boot
     img[512:512 + len(loader)] = loader
 
+    folders = a.files or [os.path.join(ROOT, 'cpmfiles'), os.path.join(ROOT, 'extras')]
     files = []
-    if a.files and os.path.isdir(a.files):
-        files = sorted(os.path.join(a.files, f) for f in os.listdir(a.files)
-                       if os.path.isfile(os.path.join(a.files, f)))
+    for folder in folders:
+        if os.path.isdir(folder):
+            files += sorted(os.path.join(folder, f) for f in os.listdir(folder)
+                            if os.path.isfile(os.path.join(folder, f)))
+        elif a.files:
+            sys.exit('no such folder: %s' % folder)
     nent, used = write_files(img, drives[0], files)
     print('  A: %d files, %d of %d blocks used' % (nent, used, drives[0]['dsm'] + 1))
 

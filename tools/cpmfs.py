@@ -8,8 +8,8 @@ in the first blocks, no system tracks.
 import fnmatch
 import os
 
-TEXT_EXT = {'.ASM', '.TXT', '.SUB', '.DOC', '.LIB', '.MAC', '.BAS', '.PAS',
-            '.C', '.H', '.PRN', '.ME', '.Z80', '.FOR', '.PLI', '.HLP', '.HEX'}
+TEXT_EXT = {'.ASM', '.TXT', '.SUB', '.DOC', '.LIB', '.MAC', '.PAS',
+            '.C', '.H', '.PRN', '.ME', '.Z80', '.FOR', '.PLI', '.HEX'}
 
 
 class CpmError(Exception):
