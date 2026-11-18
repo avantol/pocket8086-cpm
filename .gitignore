@@ -1,0 +1,13 @@
+# build output and disk images
+build/
+*.img
+*.vhd
+
+# third-party tools downloaded locally (see README)
+tools/nasm-*/
+tools/martypc/
+tools/*.zip
+
+# local editor/agent settings
+.claude/settings.local.json
+__pycache__/

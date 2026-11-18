@@ -1,0 +1,23 @@
+CP/M 2.2 material in this repository
+====================================
+
+src/cpm22.asm is Clark A. Calkins' 1981 reconstruction of the CP/M 2.2 CCP and
+BDOS (from the "Unofficial CP/M Web Site", http://www.cpm.z80.de/), patched to
+match Digital Research's distributed binary and re-origined for this system.
+
+cpmfiles/*.COM (except files built from HELLO.ASM) are the original Digital
+Research CP/M 2.2 utilities from the same site.
+
+CP/M is copyright Digital Research. It is distributed under the following grant
+from the owner of the Digital Research assets (posted at
+http://www.cpm.z80.de/license.html, 7 July 2022):
+
+  "Let this paragraph represent a right to use, distribute, modify, enhance,
+  and otherwise make available in a nonexclusive manner CP/M and its
+  derivatives. This right comes from the company, DRDOS, Inc.'s purchase of
+  Digital Research, the company and all assets, dating back to the mid-1990's.
+  DRDOS, Inc. and I, Bryan Sparks, President of DRDOS, Inc. as its
+  representative, is the owner of CP/M and the successor in interest of
+  Digital Research assets."
+
+                                        -- Bryan Sparks, President, DRDOS, Inc.

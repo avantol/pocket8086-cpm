@@ -1,0 +1,10 @@
+; HELLO.ASM - assemble and run with:  ASM HELLO  /  LOAD HELLO  /  HELLO
+BDOS	EQU	5
+PRINT	EQU	9
+	ORG	100H
+	MVI	C,PRINT
+	LXI	D,MSG
+	CALL	BDOS
+	RET
+MSG:	DB	'Hello from CP/M 2.2 on the NEC V30!',13,10,'$'
+	END
