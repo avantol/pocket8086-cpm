@@ -89,14 +89,27 @@ Hello from CP/M 2.2 on the NEC V30!
 ### Other software (`extras/`)
 
 `build.py` also copies a local `extras/` folder onto A:. Git ignores this
-folder, so it's the place for software you can't redistribute. For example,
-WordStar 3.30 for CP/M-80 (`WS330.zip` from
-[retroarchive.org](http://www.retroarchive.org/cpm/text/wordstar-collection.html))
-works well. Use its Kaypro II build (`WSkayproii.COM`) as `WS.COM`, together
-with `WSOVLY1.OVR`, `WSMSGS.OVR`, and optionally `MAILMRGE.OVR`, `SPELSTAR.*`
-and `WINSTALL.COM`/`WS.INS`. Use only 8080 software: `tools/cpmsim.py` stops
-with an error if a program executes a Z80-only instruction, so test new
-programs with it first.
+folder, so it's the place for software that can't be redistributed here.
+
+**WordStar 3.30** runs well, including MailMerge and SpellStar. It is still
+copyrighted, so this repository doesn't include it. Instead, one command
+fetches it from the
+[retroarchive.org WordStar collection](http://www.retroarchive.org/cpm/text/wordstar-collection.html),
+checks its SHA-256, and sets it up:
+
+```
+python tools/get_wordstar.py                          # fills extras/
+python tools/build.py --sectors N                     # new card, or:
+python tools/cpmfiles.py D: put extras/* --force      # add to an existing card
+```
+
+It installs the Kaypro II build (`WSkayproii.COM`) as `WS.COM`, because it
+uses the ADM-3A/Kaypro codes the console understands. On the Pocket8086, type
+`WS`, then `D` and a file name to edit a document. Use `^KD` to save, and `X`
+on the opening menu to return to CP/M.
+
+Use only 8080 software: `tools/cpmsim.py` stops with an error if a program
+executes a Z80-only instruction, so test new programs with it first.
 
 ## Copying files to and from the card
 
